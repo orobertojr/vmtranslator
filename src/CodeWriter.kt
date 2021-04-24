@@ -23,7 +23,7 @@ enum class Command(val cmdName: String){
     TEMP("temp"),
     CONSTANT("constant"),
     STATIC("static"),
-    PUSH("push"),
+    PUSH("push");
    // POP("pop");
 }
 
@@ -40,8 +40,6 @@ class CodeWriter (private val file: File) {
                 Operator.LT.opName, Operator.GT.opName -> writeRelationalArithmetic(operator)
                 else -> throw IllegalArgumentException()
             }
-            //val asmCode = generateLine(pop(), decreaseStackPointer(), stackPointer(), cmd, increaseStackPointer())
-            //val asmCode = generateLine(onlySP(), "AM=M-1", "D=M", "A=A-1", cmd)
             file.appendText(asmCode)
         }
     }
@@ -117,14 +115,13 @@ class CodeWriter (private val file: File) {
             Command.THAT.cmdName -> generateLine("@THAT // push $segment $id", "D=M")
             else -> throw IllegalArgumentException()
         }
-        //return generateLine("@$id", "D=A", cmd, push())
         return generateLine(cmd, "@$id", "A=D+A", "D=M", stackPointer(), "M=D", increaseStackPointer())
     }
 
     private fun popStaticPointerOrTemp(segment: String, id: Int): String {
         val cmd = when(segment) {
-            Command.POINTER.cmdName -> generateLine("@R${3+id} // pop $segment $id") //verificar
-            Command.TEMP.cmdName -> generateLine("@R${5+id} // pop $segment $id") //verificar
+            Command.POINTER.cmdName -> generateLine("@R${3+id} // pop $segment $id")
+            Command.TEMP.cmdName -> generateLine("@R${5+id} // pop $segment $id")
             Command.STATIC.cmdName -> generateLine("@Foo.$id")
             else -> throw IllegalArgumentException()
         }
@@ -139,7 +136,6 @@ class CodeWriter (private val file: File) {
             Command.THAT.cmdName -> generateLine("@THAT // pop $segment $id", "D=M")
             else -> throw IllegalArgumentException()
         }
-        //return generateLine("@$id", "D=A", cmd, "@R13", "M=D", "", pop(), "@R13", "A=M", "", "M=D" )
         return generateLine(cmd, "@$id", "D=D+A", "@R13", "M=D", decreaseStackPointer(), "A=M", "D=M", "@R13", "A=M", "M=D")
     }
 
@@ -149,8 +145,6 @@ class CodeWriter (private val file: File) {
     private fun increaseStackPointer() = generateLine("@SP", "M=M+1")
     private fun decreaseStackPointer() = generateLine("@SP", "M=M-1")
     private fun push() = generateLine(stackPointer(), "M=D", increaseStackPointer())
-    //private fun pop() = generateLine(decreaseStackPointer(), stackPointer(), "D=M", "M=0")
-    private fun pop() = generateLine(decreaseStackPointer(), onlySP(), "D=M", "M=0")
     private fun eq(): String {
         val cmd = generateLine(
             "D=M-D",
@@ -171,11 +165,11 @@ class CodeWriter (private val file: File) {
             "@LT$ltIncrement",
             "D;JLT",
             "D=0",
-            "@NLT$ltIncrement",
+            "@STACKLT$ltIncrement",
             "0;JMP",
             "(LT$ltIncrement)",
             "D=-1",
-            "(NLT$ltIncrement)",
+            "(STACKLT$ltIncrement)",
             stackPointer(),
             "M=D",
             increaseStackPointer()
