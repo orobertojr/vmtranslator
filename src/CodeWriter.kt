@@ -35,9 +35,9 @@ class CodeWriter (private val file: File) {
     fun writeArithmetic(operator: String) {
         if(isInEnumOperator(operator)){
             val asmCode = when(operator){
-                Operator.ADD.opName, Operator.SUB.opName, Operator.AND.opName, Operator.OR.opName, Operator.EQ.opName -> writeBinaryArithmetic(operator)
+                Operator.ADD.opName, Operator.SUB.opName, Operator.AND.opName, Operator.OR.opName -> writeBinaryArithmetic(operator)
                 Operator.NEG.opName, Operator.NOT.opName -> writeUnaryArithmetic(operator)
-                Operator.LT.opName, Operator.GT.opName -> writeRelationalArithmetic(operator)
+                Operator.LT.opName, Operator.GT.opName, Operator.EQ.opName -> writeRelationalArithmetic(operator)
                 else -> throw IllegalArgumentException()
             }
             file.appendText(asmCode)
@@ -50,7 +50,6 @@ class CodeWriter (private val file: File) {
             Operator.SUB.opName -> "M=M-D"
             Operator.AND.opName -> "M=D&M"
             Operator.OR.opName -> "M=D|M"
-            Operator.EQ.opName -> eq()
             else -> throw IllegalArgumentException()
         }
         return generateLine(onlySP(), "AM=M-1", "D=M", "A=A-1", cmd)
@@ -69,9 +68,10 @@ class CodeWriter (private val file: File) {
         val cmd = when(operator) {
             Operator.GT.opName -> gt()
             Operator.LT.opName -> lt()
+            Operator.EQ.opName -> eq()
             else -> throw IllegalArgumentException()
         }
-        return generateLine(onlySP(), "AM=M-1", "D=M", onlySP(), "AM=M-1", "D=M-D", cmd)
+        return generateLine(onlySP(), "AM=M-1", "D=M", "A=A-1", "D=M-D", cmd)
     }
 
     fun writePushOrPop(cmd: String, segment: String, id: Int) {
@@ -147,15 +147,18 @@ class CodeWriter (private val file: File) {
     private fun push() = generateLine(stackPointer(), "M=D", increaseStackPointer())
     private fun eq(): String {
         val cmd = generateLine(
-            "D=M-D",
             "@EQ$eqIncrement",
             "D;JEQ",
-            "D=1",
+            onlySP(),
+            "A=M-1",
+            "M=0",
+            "@EQSTACK$eqIncrement",
+            "0;JMP",
             "(EQ$eqIncrement)",
-            "D=D-1",
-            stackPointer(),
-            "M=D",
-            increaseStackPointer()
+            onlySP(),
+            "A=M-1",
+            "M=-1",
+            "(EQSTACK$eqIncrement)"
         )
         eqIncrement++
         return cmd
@@ -164,15 +167,16 @@ class CodeWriter (private val file: File) {
         val cmd = generateLine(
             "@LT$ltIncrement",
             "D;JLT",
-            "D=0",
-            "@STACKLT$ltIncrement",
+            onlySP(),
+            "A=M-1",
+            "M=0",
+            "@LTSTACK$ltIncrement",
             "0;JMP",
             "(LT$ltIncrement)",
-            "D=-1",
-            "(STACKLT$ltIncrement)",
-            stackPointer(),
-            "M=D",
-            increaseStackPointer()
+            onlySP(),
+            "A=M-1",
+            "M=-1",
+            "(LTSTACK$ltIncrement)"
         )
         ltIncrement++
         return cmd
@@ -181,15 +185,16 @@ class CodeWriter (private val file: File) {
         val cmd = generateLine(
             "@GT$gtIncrement",
             "D;JGT",
-            "D=0",
-            "@NGT$gtIncrement",
+            onlySP(),
+            "A=M-1",
+            "M=0",
+            "@GTSTACK$gtIncrement",
             "0;JMP",
             "(GT$gtIncrement)",
-            "D=-1",
-            "(NGT$gtIncrement)",
-            stackPointer(),
-            "M=D",
-            increaseStackPointer()
+            onlySP(),
+            "A=M-1",
+            "M=-1",
+            "(GTSTACK$gtIncrement)"
         )
         gtIncrement++
         return cmd
