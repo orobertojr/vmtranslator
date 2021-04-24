@@ -4,16 +4,10 @@ import java.lang.IllegalArgumentException
 enum class CommandType (val commandName: String){
     ARITHMETIC("arithmetic"),
     PUSH("push"),
-    POP("pop"),
-    LABEL("label"),
-    GOTO("goto"),
-    IF("if-goto"),
-    FUNCTION("function"),
-    RETURN("return"),
-    CALL("call");
+    POP("pop");
 
     fun hasArg2(): Boolean {
-        return this == PUSH || this == POP || this == FUNCTION || this == CALL;
+        return this == PUSH || this == POP
     }
 }
 
@@ -43,12 +37,6 @@ class Parser (file: File) {
         currentCmdType = when(currentCommandElements[0]) {
             CommandType.PUSH.commandName -> CommandType.PUSH
             CommandType.POP.commandName -> CommandType.POP
-            CommandType.LABEL.commandName -> CommandType.LABEL
-            CommandType.GOTO.commandName -> CommandType.GOTO
-            CommandType.IF.commandName -> CommandType.IF
-            CommandType.FUNCTION.commandName -> CommandType.FUNCTION
-            CommandType.CALL.commandName -> CommandType.CALL
-            CommandType.RETURN.commandName -> CommandType.RETURN
             else -> CommandType.ARITHMETIC
         }
         return currentCmdType
